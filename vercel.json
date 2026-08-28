@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/encuesta-nps-myworkin.html" },
+    { "source": "/resultados", "destination": "/resultados-nps-myworkin.html" },
+    { "source": "/qr", "destination": "/qr-encuesta-myworkin.html" }
+  ]
+}

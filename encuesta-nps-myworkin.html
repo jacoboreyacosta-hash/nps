@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Encuesta de Satisfacción · Claude Training</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,7 +62,6 @@
   /* ---- header ---- */
 
   .hero-header { position: relative; padding: 4px 0 40px; }
-
   .hero-header::before {
     content: "";
     position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
@@ -157,8 +161,6 @@
   .btn-submit:active { transform: translateY(0); }
   .btn-submit[disabled] { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
 
-  .readonly-box { text-align: center; padding: 40px 24px; color: var(--ink-muted); font-size: 14.5px; }
-
   /* ---- thank-you ---- */
 
   .thankyou-card {
@@ -182,40 +184,20 @@
   footer.page-footer { padding-top: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
   footer.page-footer p { margin: 0 0 6px; font-size: 12px; color: var(--ink-faint); font-family: var(--font-mono); line-height: 1.6; }
 </style>
+</head>
+<body>
 
 <div id="root"></div>
 
-<script id="app">
+<script>
 (function () {
-  var SELF_SRC = document.currentScript.textContent;
-
-  var HEAD_META =
-    '<meta charset="utf-8">\n' +
-    '<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
-    '<title>Encuesta de Satisfacción · Claude Training</title>\n' +
-    '<link rel="preconnect" href="https://fonts.googleapis.com">\n' +
-    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
-    '<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">';
-
-  /*STATE_START*/
-  var STATE = {"meta":{"sessionName":"Claude Training"},"responses":[]};
-  /*STATE_END*/
-
-  function scriptSourceWithState(state) {
-    // Escape "<" so a respondent's comment can never close this tag early
-    // when the page is re-parsed.
-    var json = JSON.stringify(state).replace(/</g, '\\u003C');
-    return SELF_SRC.replace(
-      /\/\*STATE_START\*\/[\s\S]*?\/\*STATE_END\*\//,
-      '/*STATE_START*/\n  var STATE = ' + json + ';\n  /*STATE_END*/'
-    );
-  }
+  var SUPABASE_URL = 'https://bwlvobtbhcjoscinqfhq.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3bHZvYnRiaGNqb3NjaW5xZmhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMDUyNDUsImV4cCI6MjEwMDc4MTI0NX0.FtpV3bxY7V9-ZtNQStscEFfSJzjFJ3iN_3yKBEbqgKU';
 
   var ui = {
     submitted: false,
-    draft: { rec: null, acomp: null, cont: null, personal: null, useful: '', useCase: '', improve: '' },
+    draft: { satisfaction: null, acompanamiento: null, calidad_contenido: null, aplicabilidad: null, aprendizaje: '', caso_uso: '', mejora: '' },
     submitting: false,
-    readOnly: false,
     notice: null
   };
 
@@ -225,9 +207,9 @@
     });
   }
 
-  function zoneOf(rec) {
-    if (rec >= 9) return 'good';
-    if (rec >= 7) return 'warning';
+  function zoneOf(v) {
+    if (v >= 9) return 'good';
+    if (v >= 7) return 'warning';
     return 'critical';
   }
 
@@ -242,7 +224,7 @@
         '<div class="brand-row"><span class="brand-mark"><span class="brand-logo" role="img" aria-label="MyworkIn"></span></span></div>' +
         '<h1>Encuesta de Satisfacción</h1>' +
         '<p class="purpose">Tu opinión nos ayuda a mejorar cada sesión. Son 4 preguntas rápidas y unas líneas para lo que quieras contarnos — menos de 2 minutos.</p>' +
-        '<span class="session-name">' + esc(STATE.meta.sessionName) + '</span>' +
+        '<span class="session-name">Claude Training</span>' +
       '</header>'
     );
   }
@@ -279,16 +261,8 @@
   }
 
   function renderForm() {
-    if (ui.readOnly) {
-      return (
-        '<div class="form-card">' +
-          '<div class="readonly-box">Esta encuesta es de solo lectura para ti.<br>Pide a quien la administra que te dé acceso de edición para poder responder.</div>' +
-        '</div>'
-      );
-    }
-
-    var canSubmit = ui.draft.rec !== null && ui.draft.acomp !== null && ui.draft.cont !== null &&
-      ui.draft.personal !== null;
+    var canSubmit = ui.draft.satisfaction !== null && ui.draft.acompanamiento !== null &&
+      ui.draft.calidad_contenido !== null && ui.draft.aplicabilidad !== null;
 
     return (
       '<div>' +
@@ -300,7 +274,7 @@
             '<div class="q-block" style="margin-bottom:0">' +
               '<p class="q-label">¿Qué tanto te gustó la sesión?</p>' +
               '<p class="q-hint">Escala de 0 a 10</p>' +
-              '<div class="scale-row">' + scaleButtons('rec', 0, 10, zoneOf) + '</div>' +
+              '<div class="scale-row">' + scaleButtons('satisfaction', 0, 10, zoneOf) + '</div>' +
               '<div class="scale-endcaps"><span>Nada</span><span>Muchísimo</span></div>' +
             '</div>' +
           '</div>' +
@@ -312,19 +286,19 @@
             '<div class="q-block">' +
               '<p class="q-label">Acompañamiento del equipo de MyworkIn</p>' +
               '<p class="q-hint">Escala de 1 a 5</p>' +
-              '<div class="scale-row">' + scaleButtons('acomp', 1, 5, null) + '</div>' +
+              '<div class="scale-row">' + scaleButtons('acompanamiento', 1, 5, null) + '</div>' +
               '<div class="scale-endcaps"><span>Muy malo</span><span>Excelente</span></div>' +
             '</div>' +
             '<div class="q-block">' +
               '<p class="q-label">Calidad del contenido presentado</p>' +
               '<p class="q-hint">Escala de 1 a 5</p>' +
-              '<div class="scale-row">' + scaleButtons('cont', 1, 5, null) + '</div>' +
+              '<div class="scale-row">' + scaleButtons('calidad_contenido', 1, 5, null) + '</div>' +
               '<div class="scale-endcaps"><span>Muy malo</span><span>Excelente</span></div>' +
             '</div>' +
             '<div class="q-block" style="margin-bottom:0">' +
               '<p class="q-label">Qué tan aplicable fue a tu rol o área</p>' +
               '<p class="q-hint">Escala de 1 a 5</p>' +
-              '<div class="scale-row">' + scaleButtons('personal', 1, 5, null) + '</div>' +
+              '<div class="scale-row">' + scaleButtons('aplicabilidad', 1, 5, null) + '</div>' +
               '<div class="scale-endcaps"><span>Nada aplicable</span><span>Muy aplicable</span></div>' +
             '</div>' +
           '</div>' +
@@ -333,9 +307,9 @@
         '<div class="section-block">' +
           '<div class="section-eyebrow"><span class="num">03</span><span class="label">Cuéntanos más</span></div>' +
           '<div class="form-card">' +
-            openField('useful', '¿Cuál fue el mayor aprendizaje o el momento más útil de la sesión?', 'Opcional', 'Escribe aquí...') +
-            openField('useCase', '¿Qué caso de uso te gustaría aplicar primero en tu trabajo?', 'Opcional', 'Escribe aquí...') +
-            openField('improve', '¿Qué cambiarías o mejorarías para la próxima sesión?', 'Opcional', 'Escribe aquí...', true) +
+            openField('aprendizaje', '¿Cuál fue el mayor aprendizaje o el momento más útil de la sesión?', 'Opcional', 'Escribe aquí...') +
+            openField('caso_uso', '¿Qué caso de uso te gustaría aplicar primero en tu trabajo?', 'Opcional', 'Escribe aquí...') +
+            openField('mejora', '¿Qué cambiarías o mejorarías para la próxima sesión?', 'Opcional', 'Escribe aquí...', true) +
           '</div>' +
         '</div>' +
 
@@ -347,10 +321,8 @@
     );
   }
 
-  function renderBody(state, uiState) {
-    var savedState = STATE, savedUi = ui;
-    STATE = state; ui = uiState;
-    var html =
+  function paint() {
+    document.getElementById('root').innerHTML =
       '<div class="page">' +
         renderHeader() +
         (ui.submitted ? renderThankYou() : renderForm()) +
@@ -359,22 +331,6 @@
           '<p>Encuesta generada por MyworkIn.</p>' +
         '</footer>' +
       '</div>';
-    STATE = savedState; ui = savedUi;
-    return html;
-  }
-
-  function pageSource(state, uiState) {
-    return (
-      '<!doctype html>\n<html lang="es">\n<head>\n' + HEAD_META + '\n<style id="style-app">' +
-      document.getElementById('style-app').textContent +
-      '</style>\n</head>\n<body>\n<div id="root">' +
-      renderBody(state, uiState) +
-      '</div>\n<script id="app">' + scriptSourceWithState(state) + '<' + '/script>\n</body>\n</html>'
-    );
-  }
-
-  function paint() {
-    document.getElementById('root').innerHTML = renderBody(STATE, ui);
   }
 
   function setNotice(kind, icon, text) {
@@ -385,97 +341,52 @@
     setTimeout(function () { ui.notice = null; paint(); }, 4000);
   }
 
-  async function publishState(newState, stashSubmitted) {
-    var artifact = await claude.use('artifact');
-    if (!artifact) {
-      setNotice('err', '⚠️', 'Esta función no está disponible en este visor.');
-      paint();
-      return false;
-    }
-    try {
-      if (stashSubmitted) {
-        try { sessionStorage.setItem('nps_submitted', '1'); } catch (e) {}
-      }
-      await artifact.publish(pageSource(newState, ui));
-      return true;
-    } catch (err) {
-      var code = err && err.code;
-      if (code === 'not_writer' || code === 'not_granted') {
-        ui.readOnly = true;
-        try { sessionStorage.setItem('nps_readonly', '1'); } catch (e) {}
-        setNotice('warn', '🔒', 'No tienes permiso de edición — pide acceso a quien administra esta encuesta.');
-      } else if (code === 'conflict') {
-        try { sessionStorage.setItem('nps_pending_answer', JSON.stringify(newState.responses[newState.responses.length - 1])); } catch (e) {}
-        setNotice('warn', '↻', 'Alguien más actualizó la encuesta justo ahora, sincronizando…');
-      } else if (code === 'rate_limited') {
-        setNotice('warn', '⏳', 'Demasiadas actualizaciones seguidas — espera unos segundos e intenta de nuevo.');
-      } else {
-        setNotice('err', '⚠️', 'No se pudo guardar. Intenta de nuevo en unos segundos.');
-      }
-      try { sessionStorage.removeItem('nps_submitted'); } catch (e) {}
-      paint();
-      clearNoticeSoon();
-      return false;
-    }
+  function freshDraft() {
+    return { satisfaction: null, acompanamiento: null, calidad_contenido: null, aplicabilidad: null, aprendizaje: '', caso_uso: '', mejora: '' };
   }
 
   async function handleSubmit() {
-    if (ui.draft.rec === null || ui.draft.acomp === null || ui.draft.cont === null ||
-        ui.draft.personal === null) {
+    if (ui.draft.satisfaction === null || ui.draft.acompanamiento === null ||
+        ui.draft.calidad_contenido === null || ui.draft.aplicabilidad === null) {
       paint();
       return;
     }
     ui.submitting = true;
     paint();
 
-    var response = {
-      id: 'r' + Date.now() + Math.random().toString(36).slice(2, 8),
-      ts: Date.now(),
-      rec: ui.draft.rec,
-      acomp: ui.draft.acomp,
-      cont: ui.draft.cont,
-      personal: ui.draft.personal,
-      useful: ui.draft.useful.trim(),
-      useCase: ui.draft.useCase.trim(),
-      improve: ui.draft.improve.trim()
-    };
-
-    var newState = { meta: STATE.meta, responses: STATE.responses.concat([response]) };
-    var ok = await publishState(newState, true);
-    if (!ok) { ui.submitting = false; }
-  }
-
-  function attemptPendingAnswer() {
-    var raw;
-    try { raw = sessionStorage.getItem('nps_pending_answer'); } catch (e) { raw = null; }
-    if (!raw) return;
-    try { sessionStorage.removeItem('nps_pending_answer'); } catch (e) {}
-    var response;
-    try { response = JSON.parse(raw); } catch (e) { return; }
-    var already = STATE.responses.some(function (r) { return r.id === response.id; });
-    if (already) return;
-    var newState = { meta: STATE.meta, responses: STATE.responses.concat([response]) };
-    publishState(newState, true);
-  }
-
-  function freshDraft() {
-    return { rec: null, acomp: null, cont: null, personal: null, useful: '', useCase: '', improve: '' };
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/nps_responses', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          satisfaction: ui.draft.satisfaction,
+          acompanamiento: ui.draft.acompanamiento,
+          calidad_contenido: ui.draft.calidad_contenido,
+          aplicabilidad: ui.draft.aplicabilidad,
+          aprendizaje: ui.draft.aprendizaje.trim() || null,
+          caso_uso: ui.draft.caso_uso.trim() || null,
+          mejora: ui.draft.mejora.trim() || null
+        })
+      });
+      if (!res.ok) throw new Error('http ' + res.status);
+      ui.submitting = false;
+      ui.submitted = true;
+      paint();
+    } catch (err) {
+      ui.submitting = false;
+      setNotice('err', '⚠️', 'No se pudo guardar. Intenta de nuevo en unos segundos.');
+      paint();
+      clearNoticeSoon();
+    }
   }
 
   function init() {
-    try {
-      if (sessionStorage.getItem('nps_readonly') === '1') ui.readOnly = true;
-    } catch (e) {}
-
-    try {
-      if (sessionStorage.getItem('nps_submitted') === '1') {
-        sessionStorage.removeItem('nps_submitted');
-        ui.submitted = true;
-      }
-    } catch (e) {}
-
     paint();
-    attemptPendingAnswer();
 
     var root = document.getElementById('root');
 
@@ -512,3 +423,5 @@
   }
 })();
 </script>
+</body>
+</html>
